@@ -28,17 +28,24 @@ const router = useRouter()
 
 const handleLogin = async () => {
   await authStore.login(username.value, password.value)
-  await authStore.fetchPerfil()
 
+  // Esperamos fetchPerfil y revisamos si tiene un tipo válido
   if (authStore.token) {
-    const tipoUsuario = authStore.user?.tipo?.toLowerCase()  // CORREGIDO
+    await authStore.fetchPerfil()
+
+    const tipoUsuario = authStore.user?.tipo?.toLowerCase()
+
     console.log('Tipo de usuario:', tipoUsuario)
 
     if (tipoUsuario === 'administrativo') {
       router.push('/admin/usuarios')
-    } else {
+    } else if (tipoUsuario === 'aprendiz' || tipoUsuario === 'seguridad') {
       router.push('/perfil')
+    } else {
+      alert('Tipo de usuario no reconocido')
     }
+  } else {
+    alert('Error en el login')
   }
 }
 </script>

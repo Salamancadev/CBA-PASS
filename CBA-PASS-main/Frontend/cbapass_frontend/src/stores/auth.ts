@@ -16,23 +16,35 @@ export const useAuthStore = defineStore('auth', {
     user: null as Usuario | null,
   }),
   actions: {
-    async login(username: string, password: string) {
+    async login(username: string, password: string): Promise<boolean> {
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/token/', {
+      username,
+      password,
+    });
+
+    this.token = res.data.access || '';
+    localStorage.setItem('token', this.token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
+
+    await this.fetchPerfil();
+    alert('Inicio de sesión exitoso');
+    return true;
+  } catch (err) {
+    alert('Error al iniciar sesión');
+    this.token = '';
+    localStorage.removeItem('token'); // Limpia token viejo
+    return false;
+  }
+},
+
+    async register(userData: Usuario & { password: string }) {
       try {
-        const res = await axios.post('http://127.0.0.1:8000/api/token/', {
-          username,
-          password,
-        })
-
-        this.token = res.data.access || ''
-        localStorage.setItem('token', this.token)
-
-        // 👇 importante: configuramos axios
-        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
-
-        await this.fetchPerfil()
-        alert('Inicio de sesión exitoso')
-      } catch (err) {
-        alert('Error al iniciar sesión')
+        await axios.post('http://127.0.0.1:8000/api/register/', userData)
+        alert('Registro exitoso. Ahora puedes iniciar sesión.')
+      } catch (error) {
+        alert('Error al registrar usuario')
+        console.error(error)
       }
     },
 
@@ -49,7 +61,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     restoreSession() {
-      // 👇 Esta función se llama en App.vue (ver abajo)
       const token = localStorage.getItem('token')
       if (token) {
         this.token = token

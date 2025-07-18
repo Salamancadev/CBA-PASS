@@ -31,7 +31,9 @@ class QRSerializer(serializers.ModelSerializer):
         model = QR
         fields = '__all__'
 
+
 class HistorialAccesoSerializer(serializers.ModelSerializer):
     class Meta:
         model = HistorialAcceso
-        fields = '__all__'
+        fields = ['id', 'usuario', 'fecha_hora', 'accion']
+        read_only_fields = ['fecha_hora']

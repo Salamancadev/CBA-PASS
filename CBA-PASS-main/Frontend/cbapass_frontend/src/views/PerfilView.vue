@@ -53,34 +53,45 @@
       </div>
     </div>
 
+    <p class="text-white fw-bold">
+  <strong class="text-white">Registrar ingreso:</strong>
+  <button @click="registrarIngreso" style="margin-top: 5px; background-color: #00796b;">Marcar Entrada</button>
+  </p>
+
     <div class="acciones">
       <button @click="handleLogout">Cerrar sesión</button>
       <router-link to="/" class="text-white fw-bold">Ir al inicio</router-link>
     </div>
   </div>
 
+<h2 class="text-xl font-semibold mt-6">Historial de accesos</h2>
+<ul class="mt-2">
+  <li v-for="registro in historiales" :key="registro.id" class="border-b py-2">
+    {{ formatHora(registro.fecha_hora) }}
+  </li>
+</ul>
   
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
 const editando = ref(false)
-const user = ref(authStore.user)  // hacemos esto reactivo
+const user = ref(authStore.user)
+const historiales = ref<any[]>([])
 
-// Editables con fallback a string vacío para evitar errores de tipo
+// Editables con fallback
 const editUser = reactive({
   username: user.value?.username ?? '',
   email: user.value?.email ?? '',
-
 })
 
-// Si el usuario cambia (por ejemplo, después de un login), actualiza los campos editables
+// Actualiza campos editables si cambia el usuario
 watch(() => authStore.user, (nuevoUsuario) => {
   user.value = nuevoUsuario
   if (nuevoUsuario) {
@@ -103,12 +114,23 @@ const formatFecha = (fecha: string) => {
   })
 }
 
+const formatHora = (fecha: string) => {
+  const date = new Date(fecha)
+  return date.toLocaleTimeString('es-CO', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
 const guardarCambios = async () => {
-  console.log('Haciendo petición para guardar cambios...');
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token')
   if (!token) {
-    console.error('No hay token de autenticación');
-    return;
+    console.error('No hay token de autenticación')
+    return
   }
 
   try {
@@ -121,36 +143,86 @@ const guardarCambios = async () => {
       body: JSON.stringify({
         username: editUser.username,
         email: editUser.email,
-
       }),
-    });
+    })
 
-    const data = await response.json();
-    console.log('Respuesta del backend:', data);
-
+    const data = await response.json()
     if (response.ok) {
       user.value = data
       Object.assign(editUser, data)
       authStore.user = { ...data }
       editando.value = false
-      console.log('Perfil actualizado correctamente')
     } else {
-      console.error('Error al actualizar:', data);
-      alert(data?.error || 'Error al actualizar el perfil');
+      alert(data?.error || 'Error al actualizar el perfil')
     }
   } catch (error) {
-    console.error('Error de red:', error);
-    alert('Ocurrió un error de red al intentar guardar');
+    console.error('Error de red:', error)
+    alert('Ocurrió un error de red al intentar guardar')
   }
 }
+
 const cancelarEdicion = () => {
   if (user.value) {
     editUser.username = user.value.username
     editUser.email = user.value.email
-
   }
   editando.value = false
 }
+
+const obtenerHistorial = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/historiales/', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    const data = await response.json()
+    if (response.ok) {
+      historiales.value = data
+    } else {
+      console.error('Error al obtener historial:', data)
+    }
+  } catch (error) {
+    console.error('Error de red al obtener historial:', error)
+  }
+}
+
+const registrarIngreso = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    alert('No autenticado')
+    return
+  }
+
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/registrar-acceso/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ tipo: 'entrada' }),
+    })
+
+    const data = await response.json()
+    if (response.ok) {
+      alert(data.mensaje)
+      await obtenerHistorial()  // 👈 recarga el historial
+    } else {
+      alert(data.error || 'Error registrando acceso')
+    }
+  } catch (error) {
+    console.error('Error de red al registrar acceso:', error)
+    alert('Error de red')
+  }
+}
+
+onMounted(() => {
+  obtenerHistorial()
+})
 </script>
 
 <style scoped>

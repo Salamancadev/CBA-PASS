@@ -31,9 +31,8 @@ urlpatterns = [
     path('perfil/', PerfilUsuarioView.as_view(), name='perfil-usuario'),
 
     path('api/generar-qr/', GenerarQRView.as_view(), name='generar_qr'),
-    path('api/registrar-acceso/', RegistrarAccesoView.as_view(), name='registrar_acceso'),
+    path('registrar-acceso/', RegistrarAccesoView.as_view(), name='registrar_acceso'),
 
     path('perfil/actualizar/', views.ActualizarPerfilAPIView.as_view(), name='actualizar-perfil'),
-
     
 ]

@@ -29,9 +29,9 @@ class QR(models.Model):
         return f"QR de {self.usuario}"
 
 class HistorialAcceso(models.Model):
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='historial')
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='historiales')
     fecha_hora = models.DateTimeField(auto_now_add=True)
-    tipo_evento = models.CharField(max_length=10, choices=[('entrada', 'Entrada'), ('salida', 'Salida')])
+    accion = models.CharField(max_length=50)  # Ej: 'entrada' o 'salida'
 
     def __str__(self):
-        return f"{self.usuario} - {self.tipo_evento} - {self.fecha_hora}"
+        return f"{self.usuario} - {self.accion} - {self.fecha_hora}"

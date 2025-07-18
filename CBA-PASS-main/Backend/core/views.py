@@ -1,19 +1,18 @@
-from rest_framework import generics
-from .models import Usuario, QR, HistorialAcceso
-from .serializers import UsuarioSerializer, QRSerializer, HistorialAccesoSerializer
-from django.contrib.auth.models import User
+from rest_framework import generics, status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Usuario, QR
+from rest_framework.decorators import api_view, permission_classes
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
+from django.utils.crypto import get_random_string
 from rest_framework.serializers import ModelSerializer
+from .models import Usuario, QR, HistorialAcceso
+from .serializers import UsuarioSerializer, QRSerializer, HistorialAccesoSerializer
 import uuid
 from rest_framework.permissions import IsAuthenticated
-from django.utils.crypto import get_random_string
-from .models import HistorialAcceso
 
-    
-# Usuario
+# ---------------------- VISTAS BASADAS EN CLASES --------------------------
+
 class UsuarioListCreate(generics.ListCreateAPIView):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
@@ -22,7 +21,6 @@ class UsuarioRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
 
-# QR
 class QRListCreate(generics.ListCreateAPIView):
     queryset = QR.objects.all()
     serializer_class = QRSerializer
@@ -31,15 +29,17 @@ class QRRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = QR.objects.all()
     serializer_class = QRSerializer
 
-# Historial
 class HistorialListCreate(generics.ListCreateAPIView):
-    queryset = HistorialAcceso.objects.all()
     serializer_class = HistorialAccesoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Asegura que accedes al perfil relacionado con el user
+        return HistorialAcceso.objects.filter(usuario=self.request.user.perfil)
 
 class HistorialRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     queryset = HistorialAcceso.objects.all()
     serializer_class = HistorialAccesoSerializer
-
 
 class RegisterSerializer(ModelSerializer):
     class Meta:
@@ -63,10 +63,8 @@ class RegisterView(APIView):
         if User.objects.filter(username=username).exists():
             return Response({"error": "El usuario ya existe"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Crear el usuario del sistema
         user = User.objects.create_user(username=username, password=password)
 
-        # Crear el modelo personalizado
         usuario = Usuario.objects.create(
             user=user,
             nombres=nombres,
@@ -76,14 +74,11 @@ class RegisterView(APIView):
             email=email
         )
 
-        # Generar un código QR único
-        codigo_qr = str(uuid.uuid4())
-        QR.objects.create(usuario=usuario, codigo=codigo_qr)
-
+        QR.objects.create(usuario=usuario, codigo=str(uuid.uuid4()))
         return Response({"mensaje": "Usuario registrado correctamente"}, status=status.HTTP_201_CREATED)
-    
+
 class PerfilUsuarioView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         try:
@@ -101,7 +96,6 @@ class PerfilUsuarioView(APIView):
 
         serializer = UsuarioSerializer(perfil, data=request.data, partial=True)
         if serializer.is_valid():
-            # Validaciones de duplicados
             nuevo_username = request.data.get('username')
             nuevo_email = request.data.get('email')
             user = request.user
@@ -115,8 +109,6 @@ class PerfilUsuarioView(APIView):
                     return Response({'error': 'El correo electrónico ya está en uso.'}, status=400)
 
             serializer.save()
-
-            # Actualiza también el modelo User
             if nuevo_username:
                 user.username = nuevo_username
             if nuevo_email:
@@ -126,39 +118,55 @@ class PerfilUsuarioView(APIView):
             return Response(serializer.data)
 
         return Response(serializer.errors, status=400)
-        
+
 class GenerarQRView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         usuario = request.user.perfil
         if hasattr(usuario, 'qr'):
             return Response({'detalle': 'QR ya generado.'}, status=400)
 
-        codigo_qr = get_random_string(20)  # Generar un código aleatorio
+        codigo_qr = get_random_string(20)
         qr = QR.objects.create(usuario=usuario, codigo=codigo_qr)
         return Response({'mensaje': 'QR generado', 'codigo': qr.codigo})
 
-class RegistrarAccesoView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        tipo_evento = request.data.get('tipo')  # 'entrada' o 'salida'
-        if tipo_evento not in ['entrada', 'salida']:
-            return Response({'error': 'Tipo de evento inválido'}, status=400)
-
-        usuario = request.user.perfil
-        HistorialAcceso.objects.create(usuario=usuario, tipo_evento=tipo_evento)
-        return Response({'mensaje': f'{tipo_evento.capitalize()} registrada'})
-    
 class ActualizarPerfilAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request):
-        usuario = request.user.perfil # Asegúrate de que esto sea correcto
+        usuario = request.user.perfil
         serializer = UsuarioSerializer(usuario, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+    
+class HistorialAccesoListView(generics.ListAPIView):
+    serializer_class = HistorialAccesoSerializer
+
+    def get_queryset(self):
+        return HistorialAcceso.objects.filter(usuario=self.request.user)
+    
+class HistorialAccesoCreateView(generics.CreateAPIView):
+    serializer_class = HistorialAccesoSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(usuario=self.request.user)
+
+class RegistrarAccesoView(APIView):
+    serializer_class = HistorialAccesoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            usuario = Usuario.objects.get(user=request.user)
+            HistorialAcceso.objects.create(usuario=usuario, accion='entrada')  # asegurate de que sea 'accion'
+            return Response({'mensaje': 'Acceso registrado'}, status=status.HTTP_201_CREATED)
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+    def get_queryset(self):
+        return HistorialAcceso.objects.filter(usuario=self.request.user)
+    
     
