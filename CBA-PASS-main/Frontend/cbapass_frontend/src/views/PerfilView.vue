@@ -61,6 +61,7 @@
     <div class="acciones">
       <button @click="handleLogout">Cerrar sesión</button>
       <router-link to="/" class="text-white fw-bold">Ir al inicio</router-link>
+      <router-link to="/carnet">Qr</router-link>
     </div>
   </div>
 

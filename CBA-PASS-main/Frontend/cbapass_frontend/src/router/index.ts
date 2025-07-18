@@ -17,7 +17,12 @@ const router = createRouter({
     path: '/admin/usuarios',
     name: 'AdminUsuarios',
     component: () => import('@/views/AdminUsuarios.vue'),
-}
+    },
+    {
+    path: '/carnet',
+    name: 'Carnet',
+    component: () => import('@/views/Carnet.vue'),
+},
   ],
 })
 

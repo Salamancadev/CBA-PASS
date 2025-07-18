@@ -3,12 +3,7 @@
     <h2 class="text-2xl font-bold mb-4">Administración de Usuarios</h2>
 
     <!-- Botón para volver al inicio -->
-    <button
-      @click="$router.push('/')"
-      class="mb-4 bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
-    >
-      Volver al Inicio
-    </button>
+    <button @click="$router.push('/')" class="btn volver">Volver al Inicio</button>
 
     <table class="w-full table-auto border-collapse border border-gray-300">
       <thead>
@@ -33,7 +28,11 @@
             <span v-else>{{ usuario.email }}</span>
           </td>
           <td class="border px-4 py-2">
-            <select v-if="usuario.editando" v-model="usuario.tipo" class="border p-1 w-full rounded">
+            <select
+              v-if="usuario.editando"
+              v-model="usuario.tipo"
+              class="border p-1 w-full rounded"
+            >
               <option v-for="opcion in tiposDisponibles" :key="opcion" :value="opcion">
                 {{ capitalize(opcion) }}
               </option>
@@ -45,26 +44,13 @@
             <span v-else>{{ usuario.documento }}</span>
           </td>
           <td class="border px-4 py-2 space-x-2">
-            <button
-              v-if="usuario.editando"
-              @click="guardarUsuario(usuario)"
-              class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-            >
+            <button v-if="usuario.editando" @click="guardarUsuario(usuario)" class="btn guardar">
               Guardar
             </button>
-            <button
-              v-else
-              @click="editarUsuario(usuario)"
-              class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-            >
-              Editar
-            </button>
-            <button
-              @click="eliminarUsuario(usuario.id)"
-              class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-            >
-              Eliminar
-            </button>
+
+            <button v-else @click="editarUsuario(usuario)" class="btn editar">Editar</button>
+
+            <button @click="eliminarUsuario(usuario.id)" class="btn eliminar">Eliminar</button>
           </td>
         </tr>
       </tbody>
@@ -88,7 +74,7 @@ const obtenerUsuarios = async () => {
       },
     })
     const data = await response.json()
-    usuarios.value = data.map(usuario => ({
+    usuarios.value = data.map((usuario) => ({
       ...usuario,
       editando: false,
     }))
@@ -107,7 +93,7 @@ const guardarUsuario = async (usuario) => {
     email: usuario.email,
     tipo: usuario.tipo,
     documento: usuario.documento,
-    nombres: usuario.nombres,     // 👈 nuevo
+    nombres: usuario.nombres, // 👈 nuevo
     apellidos: usuario.apellidos, // 👈 nuevo
   }
 
@@ -149,7 +135,7 @@ const eliminarUsuario = async (id) => {
         },
       })
       if (response.ok) {
-        usuarios.value = usuarios.value.filter(usuario => usuario.id !== id)
+        usuarios.value = usuarios.value.filter((usuario) => usuario.id !== id)
         alert('Usuario eliminado correctamente.')
       } else {
         const data = await response.json()
@@ -166,3 +152,47 @@ const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1)
 
 onMounted(obtenerUsuarios)
 </script>
+
+<style scoped>
+.btn {
+  color: white;
+  padding: 0.25rem 0.75rem; /* py-1 px-3 */
+  border-radius: 0.375rem; /* rounded */
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+/* Guardar - verde */
+.guardar {
+  background-color: #22c55e; /* bg-green-500 */
+}
+.guardar:hover {
+  background-color: #16a34a; /* hover:bg-green-600 */
+}
+
+/* Editar - azul */
+.editar {
+  background-color: #3b82f6; /* bg-blue-500 */
+}
+.editar:hover {
+  background-color: #2563eb; /* hover:bg-blue-600 */
+}
+
+/* Eliminar - rojo */
+.eliminar {
+  background-color: #ef4444; /* bg-red-500 */
+}
+.eliminar:hover {
+  background-color: #dc2626; /* hover:bg-red-600 */
+}
+
+.volver {
+  background-color: #374151; /* bg-gray-700 */
+}
+
+.volver:hover {
+  background-color: #1f2937; /* hover:bg-gray-800 */
+}
+</style>
