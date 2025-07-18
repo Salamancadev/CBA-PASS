@@ -6,7 +6,15 @@
 </template>
 
 <script setup lang="ts">
-// No necesitas importar nada aquí todavía
+import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
+onMounted(() => {
+  auth.restoreSession()
+})
+
 </script>
 
 <style>

@@ -12,7 +12,7 @@ interface Usuario {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    token: null as string | null,
+    token: localStorage.getItem('token') || '',
     user: null as Usuario | null,
   }),
   actions: {
@@ -22,8 +22,13 @@ export const useAuthStore = defineStore('auth', {
           username,
           password,
         })
-        this.token = res.data.access
+
+        this.token = res.data.access || ''
+        localStorage.setItem('token', this.token)
+
+        // 👇 importante: configuramos axios
         axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
+
         await this.fetchPerfil()
         alert('Inicio de sesión exitoso')
       } catch (err) {
@@ -31,29 +36,11 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async register(data: {
-      username: string
-      password: string
-      nombres: string
-      apellidos: string
-      tipo: string
-      documento: string
-      email?: string
-    }) {
-      try {
-        const res = await axios.post('http://127.0.0.1:8000/api/register/', data)
-        alert('Registro exitoso')
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          alert('Error al registrar: ' + (error.response?.data?.error || 'Error desconocido'))
-        } else {
-          alert('Error inesperado')
-        }
-      }
-    },
-
     async fetchPerfil() {
       try {
+        if (this.token) {
+          axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
+        }
         const res = await axios.get('http://127.0.0.1:8000/api/perfil/')
         this.user = res.data
       } catch (error) {
@@ -61,10 +48,20 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    restoreSession() {
+      // 👇 Esta función se llama en App.vue (ver abajo)
+      const token = localStorage.getItem('token')
+      if (token) {
+        this.token = token
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      }
+    },
+
     logout() {
-      this.token = null
+      this.token = ''
       this.user = null
+      localStorage.removeItem('token')
       delete axios.defaults.headers.common['Authorization']
-    }
+    },
   },
 })

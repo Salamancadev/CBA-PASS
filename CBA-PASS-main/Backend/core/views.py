@@ -92,6 +92,40 @@ class PerfilUsuarioView(APIView):
             return Response(serializer.data)
         except Usuario.DoesNotExist:
             return Response({'error': 'Perfil no encontrado'}, status=404)
+
+    def put(self, request):
+        try:
+            perfil = Usuario.objects.get(user=request.user)
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Perfil no encontrado'}, status=404)
+
+        serializer = UsuarioSerializer(perfil, data=request.data, partial=True)
+        if serializer.is_valid():
+            # Validaciones de duplicados
+            nuevo_username = request.data.get('username')
+            nuevo_email = request.data.get('email')
+            user = request.user
+
+            if nuevo_username and nuevo_username != user.username:
+                if User.objects.filter(username=nuevo_username).exclude(pk=user.pk).exists():
+                    return Response({'error': 'El nombre de usuario ya está en uso.'}, status=400)
+
+            if nuevo_email and nuevo_email != user.email:
+                if User.objects.filter(email=nuevo_email).exclude(pk=user.pk).exists():
+                    return Response({'error': 'El correo electrónico ya está en uso.'}, status=400)
+
+            serializer.save()
+
+            # Actualiza también el modelo User
+            if nuevo_username:
+                user.username = nuevo_username
+            if nuevo_email:
+                user.email = nuevo_email
+            user.save()
+
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=400)
         
 class GenerarQRView(APIView):
     permission_classes = [IsAuthenticated]
@@ -116,3 +150,15 @@ class RegistrarAccesoView(APIView):
         usuario = request.user.perfil
         HistorialAcceso.objects.create(usuario=usuario, tipo_evento=tipo_evento)
         return Response({'mensaje': f'{tipo_evento.capitalize()} registrada'})
+    
+class ActualizarPerfilAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        usuario = request.user.perfil # Asegúrate de que esto sea correcto
+        serializer = UsuarioSerializer(usuario, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+    

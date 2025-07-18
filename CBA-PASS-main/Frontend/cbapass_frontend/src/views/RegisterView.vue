@@ -19,7 +19,9 @@
     </form>
 
     <div class="extra-links">
-      <p class="text-center text-white fw-semibold">¿Ya tienes una cuenta? <router-link to="/login">Ingresa aquí</router-link></p>
+      <p class="text-center text-white fw-semibold">
+        ¿Ya tienes una cuenta? <router-link to="/login">Ingresa aquí</router-link>
+      </p>
       <router-link to="/">Ir al inicio</router-link>
     </div>
   </div>
@@ -37,7 +39,7 @@ const form = reactive({
   apellidos: '',
   tipo: '',
   documento: '',
-  email: ''
+  email: '',
 })
 
 const authStore = useAuthStore()
@@ -55,9 +57,10 @@ const handleRegister = async () => {
   margin: 3rem auto;
   padding: 2rem;
   border-radius: 8px;
-  background: #87C159;
+  background: #87c159;
 }
-input, select {
+input,
+select {
   width: 100%;
   border-style: none;
   border-radius: 4px;
@@ -66,7 +69,7 @@ input, select {
 }
 button {
   width: 100%;
-    border-radius: 4px;
+  border-radius: 4px;
 
   padding: 0.75rem;
   background-color: #30acb3;

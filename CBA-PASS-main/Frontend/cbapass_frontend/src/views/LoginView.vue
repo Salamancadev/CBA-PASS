@@ -1,5 +1,5 @@
 <template>
-  <div class="container shadow ">
+  <div class="container shadow">
     <h1 class="text-center text-white">Iniciar Sesión</h1>
     <form @submit.prevent="handleLogin">
       <input v-model="username" placeholder="Nombre de usuario" required />
@@ -8,7 +8,9 @@
     </form>
 
     <div class="extra-links">
-      <p class="text-center text-white fw-semibold">¿No estás registrado? <router-link to="/register">Regístrate aquí</router-link></p>
+      <p class="text-center text-white fw-semibold">
+        ¿No estás registrado? <router-link to="/register">Regístrate aquí</router-link>
+      </p>
       <router-link to="/">Ir al inicio</router-link>
     </div>
   </div>
@@ -27,9 +29,20 @@ const router = useRouter()
 const handleLogin = async () => {
   await authStore.login(username.value, password.value)
   await authStore.fetchPerfil()
-  if (authStore.token) router.push('/perfil')
+
+  if (authStore.token) {
+    const tipoUsuario = authStore.user?.tipo?.toLowerCase()  // CORREGIDO
+    console.log('Tipo de usuario:', tipoUsuario)
+
+    if (tipoUsuario === 'administrativo') {
+      router.push('/admin/usuarios')
+    } else {
+      router.push('/perfil')
+    }
+  }
 }
 </script>
+
 
 <style scoped>
 .container {
@@ -37,7 +50,7 @@ const handleLogin = async () => {
   margin: 3rem auto;
   padding: 2rem;
   border-radius: 8px;
-  background: #87C159;
+  background: #87c159;
 }
 input {
   display: block;
@@ -49,7 +62,7 @@ input {
 }
 button {
   width: 100%;
-    border-radius: 4px;
+  border-radius: 4px;
 
   padding: 0.75rem;
   background-color: #30acb3;
